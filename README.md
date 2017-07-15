@@ -7,8 +7,8 @@ Looks bash.org quotes by ID up on bash.org and posts to the Slack channel where 
 Run `mvn clean install spring-boot:run` which will run the slash command listener at
 [http://localhost:8080/slash-command](http://localhost:8080/slash-command)
 
-If you'd like to have Slack point to your local environment, click
-[here](https://api.slack.com/apps/A68BZBXEC/slash-commands)
+If you'd like to have Slack point to your local environment, Go to
+https://api.slack.com/apps/YOUR-APP-ID/slash-commands
 and edit the `bash` Request URL to point to your local environment (use e.g. [ngrok](https://ngrok.com/) to expose your
 environment to the internet)
 
