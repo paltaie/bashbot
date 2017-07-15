@@ -1,0 +1,8 @@
+---
+applications:
+ - name: bashbot
+   random-route: true
+   path: target/bashbot.war
+   memory: 256M
+   instances: 1
+buildpack: java_buildpack
