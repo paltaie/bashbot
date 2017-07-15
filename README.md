@@ -1,5 +1,5 @@
-#bashbot
-by Patrick Altaie
+# `bashbot`
+#### _by Patrick Altaie_
 
 Looks bash.org quotes by ID up on bash.org and posts to the Slack channel where the slash command was sent
 
