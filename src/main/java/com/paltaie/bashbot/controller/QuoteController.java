@@ -1,35 +1,74 @@
 package com.paltaie.bashbot.controller;
 
-import com.paltaie.bashbot.service.BashQuoteService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paltaie.bashbot.model.InteractiveRequest;
+import com.paltaie.bashbot.service.MessageMakerService;
 import me.ramswaroop.jbot.core.slack.models.RichMessage;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.client.RestTemplate;
 
-import java.text.DecimalFormat;
+import java.io.IOException;
+
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 
 @Controller
 public class QuoteController {
 
-    private static final String RESPONSE_TEMPLATE_GOOD = "Here's bash.org quote #%s (Score: `%s`)\n```%s```\nView on bash.org: http://bash.org/?%s";
-    private static final String RESPONSE_TEMPLATE_BAD = "Sorry @%s, I couldn't find a bash.org quote with ID `%s`";
-    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("+#;-#");
-
+    private MessageMakerService messageMakerService;
     private String slackToken;
-    private BashQuoteService bashQuoteService;
+    private String slackOauthToken;
+    private RestTemplate restTemplate = new RestTemplate();
+    private ObjectMapper objectMapper = new ObjectMapper();
 
-    @Autowired
-    public QuoteController(@Value("${slash.command.token}") String slackToken, BashQuoteService bashQuoteService) {
+    public QuoteController(@Value("${slash.command.token}") String slackToken,
+                           @Value("${slack.oauth.token}") String slackOauthToken,
+                           MessageMakerService messageMakerService) {
+        this.messageMakerService = messageMakerService;
+        this.slackOauthToken = slackOauthToken;
         this.slackToken = slackToken;
-        this.bashQuoteService = bashQuoteService;
+    }
+
+    @PostMapping("/interactive")
+    public ResponseEntity<String> interactive(@RequestParam("payload") String payload) throws IOException {
+        InteractiveRequest interactiveRequest = objectMapper.readValue(payload, InteractiveRequest.class);
+        String result = "Posted!";
+        String actionValue = interactiveRequest.getActions().get(0).getValue();
+
+        if ("post".equals(actionValue)) {
+            MultiValueMap<String, String> multiValueMap = getParamMapForPost(interactiveRequest.getChannel().getId(),
+                    interactiveRequest.getUser().getName(),
+                    interactiveRequest.getCallbackId());
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(multiValueMap, getHeaders());
+            restTemplate.postForEntity("https://slack.com/api/chat.postMessage", request, String.class);
+        } else {
+            result = "Post cancelled!";
+        }
+
+        restTemplate.postForEntity(interactiveRequest.getResponseUrl(),
+                "{\"text\": \"" + result + "\"}",
+                String.class);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    private HttpHeaders getHeaders() {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        return httpHeaders;
     }
 
     @PostMapping(value = "/slash-command",
-            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            consumes = APPLICATION_FORM_URLENCODED_VALUE)
     @ResponseBody
     public RichMessage onReceiveSlashCommand(@RequestParam("token") String token,
                                              @RequestParam("team_id") String teamId,
@@ -44,17 +83,15 @@ public class QuoteController {
         if (!token.equals(slackToken)) {
             return new RichMessage("Sorry! You're not lucky enough to use our slack command.");
         }
-        RichMessage richMessage = new RichMessage();
-        richMessage.setResponseType("in_channel");
-        richMessage.setText(String.format(RESPONSE_TEMPLATE_BAD, userName, text));
-        bashQuoteService.getQuoteById(text).ifPresent(bashQuote ->
-                richMessage.setText(String.format(RESPONSE_TEMPLATE_GOOD,
-                        text,
-                        DECIMAL_FORMAT.format(bashQuote.getScore()),
-                        bashQuote.getText(),
-                        text)
-                )
-        );
+        RichMessage richMessage = messageMakerService.createRichMessage(true, userName, text);
         return richMessage.encodedMessage();
+    }
+
+    private MultiValueMap<String, String> getParamMapForPost(String channelId, String username, String quoteId) {
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("token", slackOauthToken);
+        map.add("channel", channelId);
+        map.set("text", messageMakerService.createRichMessage(false, username, quoteId).encodedMessage().getText());
+        return map;
     }
 }
