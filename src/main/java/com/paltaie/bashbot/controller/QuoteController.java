@@ -25,6 +25,8 @@ import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VAL
 @Controller
 public class QuoteController {
 
+    private static final String BAD_TOKEN_MSG = "Sorry! You're not lucky enough to use our slack command.";
+
     private MessageMakerService messageMakerService;
     private String slackToken;
     private String slackOauthToken;
@@ -42,6 +44,10 @@ public class QuoteController {
     @PostMapping("/interactive")
     public ResponseEntity<String> interactive(@RequestParam("payload") String payload) throws IOException {
         InteractiveRequest interactiveRequest = objectMapper.readValue(payload, InteractiveRequest.class);
+        if (!isValidRequest(interactiveRequest.getToken())) {
+            return new ResponseEntity<>("{\"\":\"" + BAD_TOKEN_MSG + "\"}", HttpStatus.OK);
+        }
+
         String result = "Posted!";
         String actionValue = interactiveRequest.getActions().get(0).getValue();
 
@@ -80,8 +86,8 @@ public class QuoteController {
                                              @RequestParam("command") String command,
                                              @RequestParam("text") String text,
                                              @RequestParam("response_url") String responseUrl) {
-        if (!token.equals(slackToken)) {
-            return new RichMessage("Sorry! You're not lucky enough to use our slack command.");
+        if (!isValidRequest(token)) {
+            return new RichMessage(BAD_TOKEN_MSG);
         }
         RichMessage richMessage = messageMakerService.createRichMessage(true, userName, text);
         return richMessage.encodedMessage();
@@ -93,5 +99,9 @@ public class QuoteController {
         map.add("channel", channelId);
         map.set("text", messageMakerService.createRichMessage(false, username, quoteId).encodedMessage().getText());
         return map;
+    }
+
+    private boolean isValidRequest(String token) {
+        return token.equalsIgnoreCase(slackToken);
     }
 }
