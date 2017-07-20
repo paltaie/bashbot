@@ -3,7 +3,6 @@ package com.paltaie.bashbot.service;
 import com.paltaie.bashbot.model.BashQuote;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

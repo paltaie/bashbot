@@ -4,7 +4,6 @@ import com.paltaie.bashbot.model.BashQuote;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.Optional;
 
 import static org.junit.Assert.*;
