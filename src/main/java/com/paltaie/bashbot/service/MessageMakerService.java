@@ -12,7 +12,7 @@ import java.text.DecimalFormat;
 @Service
 public class MessageMakerService {
 
-    private static final String RESPONSE_TEMPLATE_GOOD = "Here's bash.org quote #%s (Score: `%s`)\n```%s```\nView on bash.org: http://bash.org/?%s";
+    private static final String RESPONSE_TEMPLATE_GOOD = "@%s has shared bash.org quote #%s (Score: `%s`)\n```%s```\nView on bash.org: http://bash.org/?%s";
     private static final String RESPONSE_TEMPLATE_BAD = "Sorry @%s, I couldn't find a bash.org quote with ID `%s`";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("+#;-#");
 
@@ -32,6 +32,7 @@ public class MessageMakerService {
         bashQuoteService.getQuoteById(quoteId).ifPresent(bashQuote -> {
             richMessage.setAttachments(buildConfirmAttachment(quoteId));
             richMessage.setText(String.format(RESPONSE_TEMPLATE_GOOD,
+                    username,
                     quoteId,
                     DECIMAL_FORMAT.format(bashQuote.getScore()),
                     bashQuote.getText(),

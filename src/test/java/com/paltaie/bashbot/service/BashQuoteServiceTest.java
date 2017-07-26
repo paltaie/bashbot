@@ -18,7 +18,7 @@ public class BashQuoteServiceTest {
         assertTrue(bashQuoteOptional.isPresent());
         BashQuote bashQuote = bashQuoteOptional.get();
         assertEquals("<MadHatter> I cut my tongue shaving", bashQuote.getText());
-        assertEquals(974, bashQuote.getScore().intValue());
+        assertEquals(976, bashQuote.getScore().intValue());
     }
 
     @Test
